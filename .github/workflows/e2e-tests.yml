@@ -1,0 +1,180 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  e2e-tests:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Enable Corepack (for Yarn)
+        run: corepack enable
+
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: kingsign-api/node_modules
+          key: ${{ runner.os }}-yarn-${{ hashFiles('kingsign-api/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: ./kingsign-api
+        run: yarn install --frozen-lockfile
+
+      - name: Create backend .env file
+        working-directory: ./kingsign-api
+        run: |
+          cat > .env << EOF
+          # Database Configuration
+          MONGODB_URI=mongodb://localhost:27017/kingsign_api_test
+
+          # Server Configuration
+          HOST=localhost
+          PORT=3030
+          PUBLIC_PATH=../public/
+
+          # Pagination Configuration
+          PAGINATE_DEFAULT=10
+          PAGINATE_MAX=50
+
+          # Authentication Configuration
+          FEATHERS_SECRET=test-secret-key-for-ci-testing
+          JWT_AUDIENCE=http://localhost:3000
+          JWT_ISSUER=feathers
+          JWT_EXPIRES_IN=1d
+
+          # Mailgun Email Service Configuration (mock values for testing)
+          MAILGUN_API_KEY=test-mailgun-key
+          MAILGUN_DOMAIN=test-domain.com
+          MAILGUN_SENDER=noreply@test-domain.com
+
+          # Frontend/Backend URLs
+          FRONTEND_URL=http://localhost:3000
+          BACKEND_URL=http://localhost:3030
+
+          # AWS S3 Configuration (mock values for testing)
+          S3_ENDPOINT=test-endpoint
+          S3_REGION=us-east-1
+          S3_ACCESS_KEY_ID=test-access-key
+          S3_SECRET_ACCESS_KEY=test-secret-key
+          S3_SPACE=test-bucket
+          S3_BASEURL=https://test-bucket.s3.amazonaws.com
+
+          # Encryption Configuration
+          ENCRYPTION_SECRET=test-encryption-secret-key
+          EOF
+
+      - name: Wait for MongoDB to be ready
+        run: |
+          for i in {1..30}; do
+            if mongosh --eval "db.adminCommand('ping')" > /dev/null 2>&1; then
+              echo "MongoDB is ready"
+              exit 0
+            fi
+            echo "Waiting for MongoDB... ($i/30)"
+            sleep 2
+          done
+          echo "MongoDB failed to start"
+          exit 1
+
+      - name: Start backend server
+        working-directory: ./kingsign-api
+        run: |
+          yarn dev > backend.log 2>&1 &
+          echo $! > backend.pid
+          echo "Backend server started with PID $(cat backend.pid)"
+
+      - name: Wait for backend to be ready
+        run: |
+          for i in {1..60}; do
+            if curl -f http://localhost:3030 > /dev/null 2>&1; then
+              echo "Backend is ready"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/60)"
+            sleep 2
+          done
+          echo "Backend failed to start. Showing logs:"
+          cat kingsign-api/backend.log
+          exit 1
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npx playwright test --project=${{ matrix.browser }}
+        env:
+          CI: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.browser }}
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload test screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-screenshots-${{ matrix.browser }}
+          path: test-results/
+          retention-days: 30
+
+      - name: Show backend logs on failure
+        if: failure()
+        run: |
+          echo "=== Backend Logs ==="
+          cat kingsign-api/backend.log || echo "No backend logs found"
+
+      - name: Stop backend server
+        if: always()
+        run: |
+          if [ -f kingsign-api/backend.pid ]; then
+            kill $(cat kingsign-api/backend.pid) || true
+          fi
+
