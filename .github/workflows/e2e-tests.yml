@@ -17,11 +17,14 @@ jobs:
         image: mongo:6.0
         ports:
           - 27017:27017
+        env:
+          MONGO_INITDB_DATABASE: kingsign_api_test
         options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok' --host localhost || exit 1"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 10
+          --health-start-period 40s
 
     steps:
       - name: Checkout repository
@@ -85,8 +88,12 @@ jobs:
 
       - name: Wait for MongoDB to be ready
         run: |
+          echo "Checking MongoDB connectivity on localhost:27017..."
           for i in {1..30}; do
-            if mongosh --eval "db.adminCommand('ping')" > /dev/null 2>&1; then
+            if nc -z localhost 27017; then
+              echo "MongoDB port is open"
+              # Give it a moment to fully initialize
+              sleep 2
               echo "MongoDB is ready"
               exit 0
             fi
@@ -94,6 +101,8 @@ jobs:
             sleep 2
           done
           echo "MongoDB failed to start"
+          docker ps -a
+          docker logs $(docker ps -aq --filter ancestor=mongo:6.0) || echo "Could not get MongoDB logs"
           exit 1
 
       - name: Start backend server
