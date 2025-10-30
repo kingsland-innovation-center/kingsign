@@ -4,18 +4,41 @@ globs:
 alwaysApply: true
 ---
 
-# Your rule content
+Context about the Kingsign platform:
+    Core Features
+        1. Workspace Creation
+            - Users can create distinct Workspaces to manage document signing activities.
+            - Each workspace acts as a container for templates, documents, and collaborators.
+        2. Document Templates
+            - Users can define Document Templates containing various field types:
+            - ✍️ Signature
+            - 🖊️ Text Inputs
+            - 📅 Dates, and more
+            - Templates can be reused across multiple documents for efficiency.
 
-- You can @ files here
-- You can use markdown but dont have to
+        3. Document Generation and Sign Url
+            - From templates, users can create Documents ready for signing.
+            - Generate a Secure Signing Link for each document.
+            - Signers use this link to access a clean, intuitive **Document Signing View**, where they can complete only their assigned fields.
 
-Frontend Rules
-- use yarn
-- For use the featherClient [FeathersClient.ts](mdc:services/FeathersClient.ts) for api requests, Each entity should have a repository and all types to be used for data transfer, api requests, form submissions and model should be in the file, found in dir repository/
-- When creating components keep the state and component separate.
-- For pages that have their own unique components create a components folder inside the page folder to keep things modular, if it can be reused across the whole project, add it to global components folder instead
-- Always use react query with react context for providing for state managemnt and handling api requests with the service methods
-- You may use shadcn components as much as possible with "npx shadcn@latest add component_name" (make sure to do it in client directory), only consider mantine if shadcn cant be used
-- for Displaying text from data, if its a name please do necessary capilization on the letters
-- please use the providers/ for all our api requests
+        4. Document Signing Experience
+            - The dedicated **Signing View** offers a focused and user-friendly interface:
+            - No need for the signer to create an account.
+            - Real-time field validation ensures accurate input.
 
+        5. Document Downloading
+            - Once fully signed, documents can be downloaded in a secure, finalized format.
+            - Supports archiving and offline storage.
+
+
+BACKEND RULES (/kingsign-api)
+- Please make sure to use the feathers cli when creating services "npx feathers generate service"
+- always frollow best practices
+- we are using createdAt and updatedAt for timestamps
+- for models, please make sure that the property names use camelCase
+
+FRONTEND RULES (/kingsign)
+- Use react query for using services
+- Please use shadcn for ui components using the shadcn cli
+- always use best practices for next js 
+- we are using createdAt and updatedAt for timestamps
