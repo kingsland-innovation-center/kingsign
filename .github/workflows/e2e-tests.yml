@@ -34,11 +34,11 @@ jobs:
           cache: 'yarn'
 
       - name: Install frontend dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
 
       - name: Install backend dependencies
         working-directory: ./kingsign-api
-        run: yarn install --frozen-lockfile
+        run: yarn install
 
       - name: Create backend .env file
         working-directory: ./kingsign-api
