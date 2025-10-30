@@ -1,0 +1,55 @@
+import { Application } from '../declarations';
+import users from './users/users.service';
+import workspaces from './workspaces/workspaces.service';
+import files from './files/files.service';
+import accounts from './accounts/accounts.service';
+import roles from './roles/roles.service';
+import createMasterAccount from './master-account/master-account.service';
+import awsObjectStorage from './aws-object-storage/aws-object-storage.service';
+import documents from './documents/documents.service';
+import templates from './templates/templates.service';
+import templateFields from './template-fields/template-fields.service';
+import mailgun from './mailgun/mailgun.service';
+import emailVerification from './email-verification/email-verification.service';
+import workspaceInvites from './workspace-invites/workspace-invites.service';
+import documentFields from './document-fields/document-fields.service';
+import publicDocuments from './public-documents/public-documents.service';
+import publicDocumentFields from './public-document-fields/public-document-fields.service';
+import publicDocumentAuth from './public-document-auth/public-document-auth.service';
+import contacts from './contacts/contacts.service';
+import signatureFootprint from './signature-footprint/signature-footprint.service';
+import api from './api/api.service';
+import tags from './tags/tags.service';
+import folders from './folders/folders.service';
+import notificationIntegrations from './notification-integrations/notification-integrations.service';
+import emailTemplates from './email-templates/email-templates.service';
+import documentEmails from './document-emails/document-emails.service';
+// Don't remove this comment. It's needed to format import lines nicely.
+
+export default function (app: Application): void {
+  app.configure(users);
+  app.configure(workspaces);
+  app.configure(files);
+  app.configure(accounts);
+  app.configure(roles);
+  app.configure(createMasterAccount);
+  app.configure(awsObjectStorage);
+  app.configure(documents);
+  app.configure(templates);
+  app.configure(templateFields);
+  app.configure(mailgun);
+  app.configure(emailVerification);
+  app.configure(workspaceInvites);
+  app.configure(documentFields);
+  app.configure(publicDocuments);
+  app.configure(publicDocumentFields);
+  app.configure(publicDocumentAuth);
+  app.configure(contacts);
+  app.configure(signatureFootprint);
+  app.configure(api);
+  app.configure(tags);
+  app.configure(folders);
+  app.configure(notificationIntegrations);
+  app.configure(emailTemplates);
+  app.configure(documentEmails);
+}
